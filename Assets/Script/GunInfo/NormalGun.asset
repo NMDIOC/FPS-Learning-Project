@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9f0f4ddcf2bc94e8a8a3c10b62e6aab5, type: 3}
+  m_Name: NormalGun
+  m_EditorClassIdentifier: 
+  _prefab: {fileID: 1181685528917305032, guid: 318ed41d8ea754013a1491beb5ad2cba, type: 3}
+  _fireRate: 0.2
+  _reloadTime: 1
+  _maxAmmo: 6
+  _sonidoDisparo: {fileID: 8300000, guid: 5d3a6a03e4e774caca33928839c4a48d, type: 3}
+  _sonidoRecarga: {fileID: 8300000, guid: cf160dece821e4d1999ccef56ff819b5, type: 3}
+  "_da\xF1o": 8
