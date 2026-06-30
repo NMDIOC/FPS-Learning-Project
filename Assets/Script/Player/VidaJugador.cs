@@ -1,36 +1,41 @@
 using UnityEngine;
+using Ilumisoft.HealthSystem;
 
 public class VidaJugador : MonoBehaviour
 {
-    [Header("Configuración de Vida")]
-    [SerializeField] private float vidaMaxima = 100f;
-    private float vidaActual;
+    private Health componenteVidaAssetStore;
+
+    [Header("Componentes a apagar al morir")]
+    [SerializeField] private MonoBehaviour scriptMovimiento; // Arrastra aquí tu script de movimiento
+    [SerializeField] private Disparo scriptDisparo;         // Arrastra aquí tu script de disparo
+    [SerializeField] private GameObject graficosJugador;    // El objeto hijo que contiene el modelo 3D/mallas
 
     void Start()
     {
-        vidaActual = vidaMaxima;
-    }
+        componenteVidaAssetStore = GetComponent<Health>();
 
-    public void RecibirDano(float cantidad)
-    {
-        if (vidaActual <= 0) return;
-
-        vidaActual -= cantidad;
-        Debug.Log("El jugador recibió daño. Vida restante: " + vidaActual);
-
-        if (vidaActual <= 0)
+        if (componenteVidaAssetStore != null)
         {
-            Morir();
+            componenteVidaAssetStore.OnHealthEmpty += Morir;
+        }
+        else
+        {
+            Debug.LogError("¡Falta el componente 'Health' de Ilumisoft en el Jugador!");
         }
     }
 
     private void Morir()
     {
+        if (componenteVidaAssetStore != null)
+        {
+            componenteVidaAssetStore.OnHealthEmpty -= Morir;
+        }
+
         Debug.Log("GAME OVER: El jugador ha muerto.");
-        // Aquí puedes añadir lógica futura: mostrar pantalla de reinicio, 
-        // desactivar el movimiento, o recargar la escena.
         
-        // Por ahora, solo desactivamos el objeto del jugador para probar:
-        gameObject.SetActive(false); 
+        // En lugar de apagar el GameObject completo, apagamos sus funciones:
+        if (scriptMovimiento != null) scriptMovimiento.enabled = false;
+        if (scriptDisparo != null) scriptDisparo.enabled = false;
+        if (graficosJugador != null) graficosJugador.SetActive(false);
     }
 }

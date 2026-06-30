@@ -1,10 +1,12 @@
 using UnityEngine;
+using Ilumisoft.HealthSystem; // Importamos el sistema de vida de la Asset Store
 
 public class Bala : MonoBehaviour
 {
     private float danoBala;
 
-    // Método para inyectar el daño desde el script de disparo
+    [SerializeField] GameObject EfectoDeExplosion;
+
     public void SetDano(float cantidad)
     {
         danoBala = cantidad;
@@ -12,13 +14,14 @@ public class Bala : MonoBehaviour
 
     void OnCollisionEnter(Collision collision)
     {
-        // Si choca con el enemigo, le aplica el daño
-        if (collision.gameObject.TryGetComponent<VidaEnemigo>(out VidaEnemigo vidaEnemigo))
+        // Buscamos el componente Health de Ilumisoft en el objeto que golpeamos
+        if (collision.gameObject.TryGetComponent<Health>(out Health healthEnemigo))
         {
-            vidaEnemigo.RecibirDano(danoBala);
+            // Aplicamos el daño usando la función nativa del paquete
+            healthEnemigo.ApplyDamage(danoBala);
         }
 
-        // Se destruye al impactar con cualquier cosa
+        Instantiate(EfectoDeExplosion, transform.position, transform.rotation);
         Destroy(gameObject);
     }
 }

@@ -13,6 +13,17 @@ public class Movimiento : MonoBehaviour
     [SerializeField] private float velocidadCarrera = 9f;
     private float velocidadActual;
 
+    [Header("Configuración de Estamina")]
+    [SerializeField] private float estaminaMaxima = 100f;
+    [SerializeField] private float costoEstaminaCorrer = 25f; // Cuánta estamina gasta por segundo
+    [SerializeField] private float regeneracionEstamina = 15f; // Cuánta estamina recupera por segundo
+    private float estaminaActual;
+    private bool cansado = false; // Bloquea la carrera si la estamina llega a 0
+
+    // Propiedades públicas para que el script de la barra pueda leer los valores
+    public float MaxStamina => estaminaMaxima;
+    public float CurrentStamina => estaminaActual;
+
     [Header("Configuración de Agachado")]
     [SerializeField] private float alturaNormal = 2f;
     [SerializeField] private float alturaAgachado = 1f;
@@ -24,6 +35,7 @@ public class Movimiento : MonoBehaviour
     [SerializeField] private float sensibilidadRaton = 2f;
     [SerializeField] private float limiteVerticalMin = -85f;
     [SerializeField] private float limiteVerticalMax = 85f;
+    [SerializeField] private GameObject SoundConf;
 
     [Header("Sonidos de Pasos — Normal")]
     [SerializeField] private AudioClip sonidoPaso;
@@ -63,8 +75,10 @@ public class Movimiento : MonoBehaviour
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+        SoundConf.SetActive(false);
 
         velocidadActual = velocidadNormal;
+        estaminaActual = estaminaMaxima; // Empezamos con estamina llena
     }
 
     void Update()
@@ -77,9 +91,8 @@ public class Movimiento : MonoBehaviour
         float ratonY = Input.GetAxis("Mouse Y") * sensibilidadRaton;
 
         if (camara != null)
-        camara.localRotation = Quaternion.Euler(rotacionX, 0f, 0f);
+            camara.localRotation = Quaternion.Euler(rotacionX, 0f, 0f);
 
-        // Agachado — separado del cursor
         if (Input.GetKey(KeyCode.C) && !corriendo)
             agachado = true;
         else if (!Input.GetKey(KeyCode.C) && !ObjetoSobreLaCabeza())
@@ -93,18 +106,18 @@ public class Movimiento : MonoBehaviour
             {
                 Cursor.lockState = CursorLockMode.None;
                 Cursor.visible = true;
+                SoundConf.SetActive(true);
             }
             else
             {
                 Cursor.lockState = CursorLockMode.Locked;
                 Cursor.visible = false;
+                SoundConf.SetActive(false);
             }
 
-            // Actualizar volumen respetando el botón mute
             BotonMute.ActualizarVolumen();
         }
 
-        // Bloquear movimiento de cámara cuando el cursor está desbloqueado
         if (!cursorDesbloqueado)
         {
             transform.Rotate(Vector3.up * ratonX);
@@ -115,7 +128,39 @@ public class Movimiento : MonoBehaviour
                 camara.localRotation = Quaternion.Euler(rotacionX, 0f, 0f);
         }
 
-        corriendo = Input.GetKey(KeyCode.LeftShift) && !agachado && entradasMovimiento.magnitude > 0;
+        // LÓGICA DE ESTAMINA: Solo puede correr si presiona Shift, se está moviendo, no está agachado y no está cansado
+        bool intentaCorrer = Input.GetKey(KeyCode.LeftShift) && !agachado && entradasMovimiento.magnitude > 0;
+
+        if (intentaCorrer && !cansado && estaminaActual > 0)
+        {
+            corriendo = true;
+            // Consumo de estamina proporcional al tiempo
+            estaminaActual -= costoEstaminaCorrer * Time.deltaTime;
+
+            if (estaminaActual <= 0)
+            {
+                estaminaActual = 0;
+                cansado = true; // Entra en estado de cansancio extrema
+                corriendo = false;
+            }
+        }
+        else
+        {
+            corriendo = false;
+            // Regeneración si no está corriendo
+            if (estaminaActual < estaminaMaxima)
+            {
+                estaminaActual += regeneracionEstamina * Time.deltaTime;
+                
+                // Si recupera al menos el 20% de estamina, puede volver a correr
+                if (cansado && estaminaActual >= (estaminaMaxima * 0.2f))
+                {
+                    cansado = false;
+                }
+
+                if (estaminaActual > estaminaMaxima) estaminaActual = estaminaMaxima;
+            }
+        }
 
         ProcesarAgachado();
         ProcesarPasos();
@@ -123,7 +168,6 @@ public class Movimiento : MonoBehaviour
 
     void FixedUpdate()
     {
-        // Si el cursor está desbloqueado, el personaje no se mueve
         if (cursorDesbloqueado)
         {
             rb.velocity = new Vector3(0f, rb.velocity.y, 0f);

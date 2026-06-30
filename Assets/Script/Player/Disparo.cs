@@ -2,6 +2,9 @@ using UnityEngine;
 
 public class Disparo : MonoBehaviour
 {
+    // ENUM: Control de armas limpio sin usar números sueltos
+    private enum TipoArma { Ninguna, Arma1, Arma2 }
+
     [Header("Armas en Escena")]
     [SerializeField] private GameObject modeloArma1;
     [SerializeField] private GameObject modeloArma2;
@@ -16,6 +19,7 @@ public class Disparo : MonoBehaviour
     [Header("Bala")]
     [SerializeField] private GameObject bulletPrefab;
     [SerializeField] private float velocidad = 150f;
+    [SerializeField] private float rangoMaximoRaycast = 100f;
 
     [Header("Sonido")]
     [SerializeField] private AudioSource audioSource;
@@ -23,10 +27,14 @@ public class Disparo : MonoBehaviour
     [SerializeField] private float variacionPitch = 0.07f;
     [SerializeField] private float variacionVolumen = 0.05f;
 
+    public int CurrentAmmo => balas;
+    public int MaxAmmo => balasMaximas;
+
     // Estado interno
+    private TipoArma armaActualID = TipoArma.Ninguna;
     private GunInfo gunActual;
     private Transform spawnPoint;
-    private int gunIndex = 1;
+    
     private int balas;
     private int balasMaximas;
     private float tiempoUltimoDisparo;
@@ -34,21 +42,32 @@ public class Disparo : MonoBehaviour
     private int balasArma1;
     private int balasArma2;
 
+    // OPTIMIZACIÓN: Convertimos los triggers del Animator a Hashes numéricos para evitar lag por strings
+    private static readonly int HashChange1 = Animator.StringToHash("Change1");
+    private static readonly int HashChange2 = Animator.StringToHash("Change2");
+    private static readonly int HashReload1 = Animator.StringToHash("Reload1");
+    private static readonly int HashReload2 = Animator.StringToHash("Reload2");
+
     void Start()
     {
         balasArma1 = gunInfo1.maxAmmo;
         balasArma2 = gunInfo2.maxAmmo;
-        StartCoroutine(CambiarArma(1));
+        
+        // Iniciamos equipando la primera arma usando el Enum
+        StartCoroutine(CambiarArma(TipoArma.Arma1));
     }
 
     void Update()
     {
-        // Cambio de arma
-        if (!recargando && Input.GetKeyDown(KeyCode.Alpha1) && gunIndex != 1)
-            StartCoroutine(CambiarArma(1));
+        // SWITCH: Cambio de armas optimizado
+        if (!recargando)
+        {
+            if (Input.GetKeyDown(KeyCode.Alpha1) && armaActualID != TipoArma.Arma1)
+                StartCoroutine(CambiarArma(TipoArma.Arma1));
 
-        if (!recargando && Input.GetKeyDown(KeyCode.Alpha2) && gunIndex != 2)
-            StartCoroutine(CambiarArma(2));
+            if (Input.GetKeyDown(KeyCode.Alpha2) && armaActualID != TipoArma.Arma2)
+                StartCoroutine(CambiarArma(TipoArma.Arma2));
+        }
 
         if (Movimiento.cursorDesbloqueado) return;
 
@@ -64,30 +83,36 @@ public class Disparo : MonoBehaviour
             Disparar();
     }
 
-    System.Collections.IEnumerator CambiarArma(int nuevoIndex)
+    System.Collections.IEnumerator CambiarArma(TipoArma nuevaArma)
     {
         recargando = true;
 
-        if (gunIndex == 1) balasArma1 = balas;
-        else if (gunIndex == 2) balasArma2 = balas;
-
-        if (animator != null)
+        // Guardamos las balas del arma anterior usando Switch
+        switch (armaActualID)
         {
-            if (nuevoIndex == 1)
-                animator.SetTrigger("Change1");
-            else if (nuevoIndex == 2)
-                animator.SetTrigger("Change2");
+            case TipoArma.Arma1: balasArma1 = balas; break;
+            case TipoArma.Arma2: balasArma2 = balas; break;
         }
 
-        bool esArma1 = nuevoIndex == 1;
+        // Activamos la animación correspondiente con los Hashes optimizados
+        if (animator != null)
+        {
+            switch (nuevaArma)
+            {
+                case TipoArma.Arma1: animator.SetTrigger(HashChange1); break;
+                case TipoArma.Arma2: animator.SetTrigger(HashChange2); break;
+            }
+        }
+
+        bool esArma1 = (nuevaArma == TipoArma.Arma1);
         gunActual    = esArma1 ? gunInfo1 : gunInfo2;
         spawnPoint   = esArma1 ? spawnPoint1 : spawnPoint2;
         balasMaximas = gunActual.maxAmmo;
-        balas = esArma1 ? balasArma1 : balasArma2;
+        balas        = esArma1 ? balasArma1 : balasArma2;
 
         yield return new WaitForSeconds(0.25f);
 
-        gunIndex = nuevoIndex;
+        armaActualID = nuevaArma;
         modeloArma1.SetActive(esArma1);
         modeloArma2.SetActive(!esArma1);
 
@@ -101,19 +126,34 @@ public class Disparo : MonoBehaviour
 
         ReproducirSonido(gunActual.sonidoDisparo);
 
+        // 1. INSTANCIAR LA BALA FÍSICA (Tu lógica original)
         GameObject bala = Instantiate(bulletPrefab, spawnPoint.position, spawnPoint.rotation);
         
-        // --- INYECCIÓN DE DAÑO (ÚNICAS LÍNEAS NUEVAS) ---
+        // --- INYECCIÓN DE DAÑO ORIGINAL ---
         if (bala.TryGetComponent<Bala>(out Bala scriptBala))
         {
             scriptBala.SetDano(gunActual.daño);
         }
-        // -----------------------------------------------
+        // ----------------------------------
 
         Rigidbody rb = bala.GetComponent<Rigidbody>();
 
         if (rb != null)
-            rb.velocity = spawnPoint.forward * velocidad;
+        {
+            // 2. RAYCAST GLOBAL DESDE EL SPAWNPOINT (Sin capas molestas)
+            // Lanzamos el rayo hacia adelante desde la posición del cañón de tu arma actual
+            if (Physics.Raycast(spawnPoint.position, spawnPoint.forward, out RaycastHit hit, rangoMaximoRaycast))
+            {
+                // Si el rayo choca con algo (suelo, pared o enemigo), calculamos la dirección hacia ese punto exacto
+                Vector3 direccionHaciaImpacto = (hit.point - spawnPoint.position).normalized;
+                rb.velocity = direccionHaciaImpacto * velocidad;
+            }
+            else
+            {
+                // Si no choca con nada en su rango máximo, la bala viaja recto de manera convencional
+                rb.velocity = spawnPoint.forward * velocidad;
+            }
+        }
 
         Destroy(bala, 3.5f);
     }
@@ -122,12 +162,14 @@ public class Disparo : MonoBehaviour
     {
         recargando = true;
 
+        // SWITCH: Animación de recarga según el arma equipada
         if (animator != null)
         {
-            if (gunIndex == 1)
-                animator.SetTrigger("Reload1");
-            else if (gunIndex == 2)
-                animator.SetTrigger("Reload2");
+            switch (armaActualID)
+            {
+                case TipoArma.Arma1: animator.SetTrigger(HashReload1); break;
+                case TipoArma.Arma2: animator.SetTrigger(HashReload2); break;
+            }
         }
 
         ReproducirSonido(gunActual.sonidoRecarga);
@@ -136,8 +178,11 @@ public class Disparo : MonoBehaviour
 
         balas = balasMaximas;
 
-        if (gunIndex == 1) balasArma1 = balas;
-        else if (gunIndex == 2) balasArma2 = balas;
+        switch (armaActualID)
+        {
+            case TipoArma.Arma1: balasArma1 = balas; break;
+            case TipoArma.Arma2: balasArma2 = balas; break;
+        }
 
         recargando = false;
     }
