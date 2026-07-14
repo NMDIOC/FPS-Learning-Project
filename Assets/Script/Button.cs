@@ -1,14 +1,20 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
-public class BotonMute : MonoBehaviour
+public class ButonMute : MonoBehaviour
 {
     public static bool mutePermanente = false;
 
     [Header("Slider de Volumen")]
     [SerializeField] private Slider sliderVolumen;
-    // 0.5 = volumen normal (1f), 1 = doble volumen (2f), 0 = silencio
-    private float volumenActual = 1f;
+    
+    // Al hacerlo STATIC, el valor sobrevive al cambio de escenas
+    // y se puede usar directamente abajo sin buscar componentes.
+    private static float volumenActual = 1f;
+
+    [Header("Boton Jugar")]
+    [SerializeField] private string nombreEscena;
 
     void Start()
     {
@@ -16,17 +22,16 @@ public class BotonMute : MonoBehaviour
         {
             sliderVolumen.minValue = 0f;
             sliderVolumen.maxValue = 1f;
-            sliderVolumen.value = 0.5f;  // Empieza en el centro (volumen normal)
+            
+            // Hacemos que el slider se posicione en base al volumen que ya estaba guardado
+            sliderVolumen.value = volumenActual / 2f;  
+            
             sliderVolumen.onValueChanged.AddListener(OnSliderCambiado);
         }
     }
 
-    // Llamado automáticamente cuando el slider cambia
     public void OnSliderCambiado(float valor)
     {
-        // 0.0 → 0f (silencio)
-        // 0.5 → 1f (normal)
-        // 1.0 → 2f (doble)
         volumenActual = valor * 2f;
         ActualizarVolumen();
     }
@@ -39,8 +44,17 @@ public class BotonMute : MonoBehaviour
 
     public static void ActualizarVolumen()
     {
+        // Trae de forma segura el estado del cursor desde tu script de Movimiento
         bool silencio = mutePermanente || Movimiento.cursorDesbloqueado;
-        // Si está muteado volumen 0, si no aplica el volumen del slider
-        AudioListener.volume = silencio ? 0f : FindObjectOfType<BotonMute>()?.volumenActual ?? 1f;
+        
+        // Al ser volumenActual estático, la asignación es directa, limpia y rápida
+        AudioListener.volume = silencio ? 0f : volumenActual;
+    }
+
+    // Cambiado a PUBLIC para que el botón de Unity pueda ejecutarlo en el OnClick()
+    public void Jugar()
+    {
+        // CORREGIDO: Usamos SceneManager para cargar la escena de forma correcta
+        SceneManager.LoadScene(nombreEscena);
     }
 }

@@ -98,6 +98,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   agente: {fileID: 0}
+  animator: {fileID: 0}
   puntoA: {fileID: 0}
   puntoB: {fileID: 0}
   distanciaMinimaPunto: 1
@@ -105,6 +106,11 @@ MonoBehaviour:
   rangoVision: 15
   anguloVision: 60
   capaObstaculos:
+    serializedVersion: 2
+    m_Bits: 0
+  distanciaAtaque: 2
+  velocidadCaida: 2.5
+  capaSuelo:
     serializedVersion: 2
     m_Bits: 0
 --- !u!114 &1465196287900554031
@@ -119,6 +125,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f171df2b411d04e14b9507c162860e5d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  animator: {fileID: 0}
   scriptIA: {fileID: 0}
   agente: {fileID: 0}
   colisionadorPrincipal: {fileID: 0}
@@ -136,6 +143,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   danoPorContacto: 20
   tiempoEntreAtaques: 1
+  rangoDeAtaque: 2.2
 --- !u!114 &6764784304628082179
 MonoBehaviour:
   m_ObjectHideFlags: 0

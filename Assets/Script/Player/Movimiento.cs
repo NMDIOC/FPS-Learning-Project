@@ -115,7 +115,7 @@ public class Movimiento : MonoBehaviour
                 SoundConf.SetActive(false);
             }
 
-            BotonMute.ActualizarVolumen();
+            ButonMute.ActualizarVolumen();
         }
 
         if (!cursorDesbloqueado)
