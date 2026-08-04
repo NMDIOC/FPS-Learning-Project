@@ -10,6 +10,10 @@ public class VidaJugador : MonoBehaviour
     [SerializeField] private Disparo scriptDisparo;         // Arrastra aquí tu script de disparo
     [SerializeField] private GameObject graficosJugador;    // El objeto hijo que contiene el modelo 3D/mallas
 
+    [Header("Pantalla de Muerte")]
+    [SerializeField] private PantallaMuerte pantallaMuerte;
+
+
     void Start()
     {
         componenteVidaAssetStore = GetComponent<Health>();
@@ -37,5 +41,11 @@ public class VidaJugador : MonoBehaviour
         if (scriptMovimiento != null) scriptMovimiento.enabled = false;
         if (scriptDisparo != null) scriptDisparo.enabled = false;
         if (graficosJugador != null) graficosJugador.SetActive(false);
+
+        if (pantallaMuerte != null)
+        {
+            Debug.Log("Mostrando pantalla de muerte...");
+            pantallaMuerte.MostrarPantallaMuerte();
+        }
     }
 }

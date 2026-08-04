@@ -6,6 +6,9 @@ public class Portal : MonoBehaviour
     [Header("Escena")]
     [SerializeField] private string nombreEscena;
 
+    [Header("final ?")]
+    [SerializeField] private bool soyElFinal;
+
     [Header("UI")]
     [SerializeField] private string nombreTexto = "TextoPortal"; // El nombre del objeto en la jerarquía
     [SerializeField] private string mensajePortal = "Presiona E para entrar";
@@ -26,7 +29,18 @@ public class Portal : MonoBehaviour
     void Update()
     {
         if (jugadorDentro && Input.GetKeyDown(KeyCode.E))
-            UnityEngine.SceneManagement.SceneManager.LoadScene(nombreEscena);
+        {
+            if (soyElFinal)
+            {
+                PlayerPrefs.SetInt("Final", 1);
+                PlayerPrefs.Save();
+                UnityEngine.SceneManagement.SceneManager.LoadScene(nombreEscena);
+            }
+            else
+            {
+                UnityEngine.SceneManagement.SceneManager.LoadScene(nombreEscena);
+            }
+        }
     }
 
     void OnTriggerEnter(Collider other)
